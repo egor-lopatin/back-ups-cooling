@@ -11,6 +11,11 @@ int hysterisis = 3;
 OneWire oneWire(ONE_WIRE_BUS); // Запуск интерфейса OneWire для подключения OneWire устройств.
 DallasTemperature sensors(&oneWire); // Указание, что устройством oneWire является термодатчик от  Dallas Temperature.
 
+void readsensor() {
+  sensors.requestTemperatures();
+  t_current = sensors.getTempCByIndex(0);
+}
+
 void setup(void){
   Serial.begin(9600); // Запуск СОМ порта.
   sensors.begin(); // Запуск сенсора.
@@ -42,7 +47,3 @@ void loop(void){
   delay(1000);
 }
 
-void readsensor() {
-  sensors.requestTemperatures();
-  t_current = sensors.getTempCByIndex(0);  
-}
