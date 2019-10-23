@@ -19,8 +19,9 @@ void readsensor() {
 void setup(void){
   Serial.begin(9600); // Запуск СОМ порта.
   sensors.begin(); // Запуск сенсора.
-  readsensor(); // read sensor function
   pinMode(Relay, OUTPUT);
+  digitalWrite(Relay, HIGH);  // реле выключено
+  readsensor(); // read sensor function
 }
 
 void loop(void){ 
@@ -32,8 +33,6 @@ void loop(void){
   }
   else {
       digitalWrite(Relay, LOW);   // реле включено
-      Serial.println("Hight temperature. Relay has been activated.");
-      Serial.println("Relay will be disabled as soon as Temperature is < Histerisis.");
 
       do {
         readsensor();
@@ -41,9 +40,7 @@ void loop(void){
         delay(1000);
       } while (t_current > (t_limit - hysterisis));
 
-      Serial.println("The temperature is low then Histerisis. Disable relay.");
       digitalWrite(Relay, HIGH);
   }
   delay(1000);
 }
-
