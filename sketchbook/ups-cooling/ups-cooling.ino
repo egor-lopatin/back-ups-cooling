@@ -6,7 +6,7 @@
 int Relay = 8;
 float t_current = 0;
 int t_limit = 30;
-int hysterisis = 3;
+int hysterisis = 1;
 
 OneWire oneWire(ONE_WIRE_BUS); // Запуск интерфейса OneWire для подключения OneWire устройств.
 DallasTemperature sensors(&oneWire); // Указание, что устройством oneWire является термодатчик от  Dallas Temperature.
