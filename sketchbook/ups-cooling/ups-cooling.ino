@@ -35,7 +35,7 @@ void setup(void){
   TCCR1A = 0;   // установить регистры в 0
   TCCR1B = 0;
 
-  OCR1A = 19530;  // установка регистра совпадения (1 sec)
+  OCR1A = 15624;  // установка регистра совпадения (1 sec)
 
   TCCR1B |= (1 << WGM12);  // включить CTC режим
   TCCR1B |= (1 << CS10);  // Установить биты на коэффициент деления 1024
@@ -45,13 +45,15 @@ void setup(void){
   sei(); // включить глобальные прерывания
 }
 
+// Main loop
+
 void loop(void){ 
   readsensor();
   Serial.println(t_current);
 
   if (t_current > t_limit){
       if (timer_on == false){
-//          Serial.println("Hight temperature. Starting fan.");
+          Serial.println("Hight temperature. Starting fan.");
           digitalWrite(Relay, LOW);
           high_temp = true;
 
@@ -69,23 +71,25 @@ void loop(void){
   delay(1000);
 }
 
+// Timer is here
+
 ISR(TIMER1_COMPA_vect){
     seconds++;
-    if(seconds == 300){
+    if(seconds == 120){
         seconds = 0;
 
         if (high_temp != true){
             if (timer_on != true){
-//                Serial.println("Timer has been enabled");
+                Serial.println("Timer has been enabled");
                 digitalWrite(Relay, LOW);
                 timer_on = true;
             } else if (timer_on == true){
-//                Serial.println("Timer has been disabled");
+                Serial.println("Timer has been disabled");
                 digitalWrite(Relay, HIGH);
                 timer_on = false;
             }
-//        } else {
-//            Serial.println("High temp fan is on. Skip timer.");
+        } else {
+            Serial.println("High temp fan is on. Skip timer.");
         }
     }
 }
