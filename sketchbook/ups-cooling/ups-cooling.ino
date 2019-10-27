@@ -21,7 +21,7 @@ void readsensor() {
   t_current = sensors.getTempCByIndex(0);
 }
 
-void setup(void){
+void setup(void) {
   Serial.begin(9600);
 
   sensors.begin();
@@ -47,25 +47,25 @@ void setup(void){
 
 // Main loop
 
-void loop(void){ 
+void loop(void) {
   readsensor();
   Serial.println(t_current);
 
-  if (t_current > t_limit){
-      if (timer_on == false){
-          Serial.println("Hight temperature. Starting fan.");
-          digitalWrite(Relay, LOW);
-          high_temp = true;
+  if (t_current > t_limit) {
+    if (timer_on == false) {
+      Serial.println("Hight temperature. Starting fan.");
+      digitalWrite(Relay, LOW);
+      high_temp = true;
 
-          do {
-              readsensor();
-              Serial.println(t_current);
-              delay(1000);
-          } while (t_current > (t_limit - hysterisis));
+      do {
+        readsensor();
+        Serial.println(t_current);
+        delay(1000);
+      } while (t_current > (t_limit - hysterisis));
 
-          digitalWrite(Relay, HIGH);
-          high_temp = false;
-       }
+      digitalWrite(Relay, HIGH);
+      high_temp = false;
+    }
   }
 
   delay(1000);
@@ -73,23 +73,23 @@ void loop(void){
 
 // Timer is here
 
-ISR(TIMER1_COMPA_vect){
-    seconds++;
-    if(seconds == 180){
-        seconds = 0;
+ISR(TIMER1_COMPA_vect) {
+  seconds++;
+  if (seconds == 180) {
+    seconds = 0;
 
-        if (high_temp != true){
-            if (timer_on != true){
-                Serial.println("Timer has been enabled");
-                digitalWrite(Relay, LOW);
-                timer_on = true;
-            } else if (timer_on == true){
-                Serial.println("Timer has been disabled");
-                digitalWrite(Relay, HIGH);
-                timer_on = false;
-            }
-        } else {
-            Serial.println("High temp fan is on. Skip timer.");
-        }
+    if (high_temp != true) {
+      if (timer_on != true) {
+        Serial.println("Timer has been enabled");
+        digitalWrite(Relay, LOW);
+        timer_on = true;
+      } else if (timer_on == true) {
+        Serial.println("Timer has been disabled");
+        digitalWrite(Relay, HIGH);
+        timer_on = false;
+      }
+    } else {
+      Serial.println("High temp fan is on. Skip timer.");
     }
+  }
 }
