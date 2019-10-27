@@ -5,8 +5,8 @@
 #define ONE_WIRE_BUS 10
 
 int Relay = 8;
-int t_limit = 30;
-int hysterisis = 1;
+int t_limit = 32;
+int hysterisis = 2;
 float t_current = 0;
 
 volatile byte seconds;
@@ -75,7 +75,7 @@ void loop(void){
 
 ISR(TIMER1_COMPA_vect){
     seconds++;
-    if(seconds == 120){
+    if(seconds == 180){
         seconds = 0;
 
         if (high_temp != true){
