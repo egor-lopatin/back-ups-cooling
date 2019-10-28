@@ -8,6 +8,7 @@ int Relay = 8;
 int t_limit = 32;
 int hysterisis = 2;
 float t_current = 0;
+float t_error = -127.0;
 
 volatile byte seconds;
 bool high_temp = false;
@@ -18,7 +19,10 @@ DallasTemperature sensors(&oneWire);
 
 void readsensor() {
   sensors.requestTemperatures();
-  t_current = sensors.getTempCByIndex(0);
+
+  if (sensors.getTempCByIndex(0) != t_error) {
+      t_current = sensors.getTempCByIndex(0);
+  }
 }
 
 void setup(void) {
