@@ -104,6 +104,7 @@ void loop(void) {
       high_temp = true;
 
       do {
+        readMQ();
         readDS();
         onDisplay();
         Serial.println(t_current);
