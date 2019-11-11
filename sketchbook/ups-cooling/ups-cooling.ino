@@ -24,8 +24,8 @@ volatile byte seconds;
 bool high_temp = false;
 bool timer_on = false;
 
-char line0[15]; 
-char line1[15];
+char line0[17]; 
+char line1[17];
 
 void readMQ() {
   analogSensor = analogRead(smokePin);
@@ -42,21 +42,28 @@ void readDS() {
 }
 
 void updateDisplay() {
+   char float_str[7];
+   dtostrf(t_current,4,1,float_str);
+
+   sprintf(line0, "Gaz: %-11d", analogSensor);
+   sprintf(line1, "Temp: %-10s", float_str);
+
    lcd.setCursor(0,0);
    lcd.print(line0);
+   lcd.setCursor(0,1);
    lcd.print(line1);
 }
 
-void onDisplay() {
-  lcd.setCursor(0, 0);
-  lcd.print("Gaz:");
-  lcd.setCursor(5, 0);
-  lcd.print(analogSensor);
-  lcd.setCursor(0, 1);
-  lcd.print("Temp:");
-  lcd.setCursor(6, 1);
-  lcd.print(t_current, 1);
-}
+//void onDisplay() {
+//  lcd.setCursor(0, 0);
+//  lcd.print("Gaz:");
+//  lcd.setCursor(5, 0);
+//  lcd.print(analogSensor);
+//  lcd.setCursor(0, 1);
+//  lcd.print("Temp:");
+//  lcd.setCursor(6, 1);
+//  lcd.print(t_current, 1);
+//}
 
 void setup(void) {
   Serial.begin(9600);
@@ -103,11 +110,7 @@ void loop(void) {
   readMQ();
   readDS();
 
-  sprintf(line0, "Gaz: %-7d", analogSensor);
-  sprintf(line1, "Temp: %-7d", t_current); 
-  
   updateDisplay();
-
   Serial.println(t_current);
 
   if (t_current > t_limit) {
@@ -119,8 +122,10 @@ void loop(void) {
       do {
         readMQ();
         readDS();
-        onDisplay();
+
+        updateDisplay();
         Serial.println(t_current);
+
         delay(1000);
       } while (t_current > (t_limit - hysterisis));
 
