@@ -24,6 +24,9 @@ volatile byte seconds;
 bool high_temp = false;
 bool timer_on = false;
 
+char line0[15]; 
+char line1[15];
+
 void readMQ() {
   analogSensor = analogRead(smokePin);
 }
@@ -36,6 +39,12 @@ void readDS() {
   } else {
     t_current = 0;
   }
+}
+
+void updateDisplay() {
+   lcd.setCursor(0,0);
+   lcd.print(line0);
+   lcd.print(line1);
 }
 
 void onDisplay() {
@@ -93,7 +102,11 @@ void setup(void) {
 void loop(void) {
   readMQ();
   readDS();
-  onDisplay();
+
+  sprintf(line0, "Gaz: %-7d", analogSensor);
+  sprintf(line1, "Temp: %-7d", t_current); 
+  
+  updateDisplay();
 
   Serial.println(t_current);
 
