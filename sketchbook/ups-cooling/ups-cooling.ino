@@ -42,28 +42,17 @@ void readDS() {
 }
 
 void updateDisplay() {
-   char float_str[7];
-   dtostrf(t_current,4,1,float_str);
+   char float_temp[7];
+   dtostrf(t_current,4,1,float_temp);
 
    sprintf(line0, "Gaz: %-11d", analogSensor);
-   sprintf(line1, "Temp: %-10s", float_str);
+   sprintf(line1, "Temp: %-10s", float_temp);
 
    lcd.setCursor(0,0);
    lcd.print(line0);
    lcd.setCursor(0,1);
    lcd.print(line1);
 }
-
-//void onDisplay() {
-//  lcd.setCursor(0, 0);
-//  lcd.print("Gaz:");
-//  lcd.setCursor(5, 0);
-//  lcd.print(analogSensor);
-//  lcd.setCursor(0, 1);
-//  lcd.print("Temp:");
-//  lcd.setCursor(6, 1);
-//  lcd.print(t_current, 1);
-//}
 
 void setup(void) {
   Serial.begin(9600);
