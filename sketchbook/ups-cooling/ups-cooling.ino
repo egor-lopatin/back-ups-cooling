@@ -1,24 +1,27 @@
 #include <LiquidCrystal.h>
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // (RS, E, DB4, DB5, DB6, DB7)
-
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#define smokePin A0
-#define ONE_WIRE_BUS 4
+#define GAZ 14
+#define RELAY 2
+#define RELAYGND 3
+#define LCDGND 5
+#define LCDVCC 6
+#define DS 4
+#define DSGND 13
 
-OneWire oneWire(ONE_WIRE_BUS);
+LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // (RS, E, DB4, DB5, DB6, DB7)
+
+OneWire oneWire(DS);
 DallasTemperature sensors(&oneWire);
 
-int Relay = 2;
-int t_limit = 32;
-int hysterisis = 2;
-int analogSensor = 0;
-
-float t_current = 0;
-float t_error = -127.0;
+int temp_limit = 32;
+int temp_hyst = 2;
+float temp_current = 0;
+float temp_error = -127.0;
+int gaz_current = 0;
 
 volatile byte seconds;
 bool high_temp = false;
@@ -28,25 +31,25 @@ char line0[17];
 char line1[17];
 
 void readMQ() {
-  analogSensor = analogRead(smokePin);
+  gaz_current = analogRead(GAZ);
 }
 
 void readDS() {
   sensors.requestTemperatures();
 
-  if (sensors.getTempCByIndex(0) != t_error) {
-    t_current = sensors.getTempCByIndex(0);
+  if (sensors.getTempCByIndex(0) != temp_error) {
+    temp_current = sensors.getTempCByIndex(0);
   } else {
-    t_current = 0;
+    temp_current = 0;
   }
 }
 
 void updateDisplay() {
-   char float_str[7];
-   dtostrf(t_current,4,1,float_str);
+   char floatemp_str[7];
+   dtostrf(temp_current,4,1,floatemp_str);
 
-   sprintf(line0, "Gaz: %-11d", analogSensor);
-   sprintf(line1, "Temp: %-10s", float_str);
+   sprintf(line0, "Gaz: %-11d", gaz_current);
+   sprintf(line1, "Temp: %-10s", floatemp_str);
 
    lcd.setCursor(0,0);
    lcd.print(line0);
@@ -54,31 +57,17 @@ void updateDisplay() {
    lcd.print(line1);
 }
 
-//void onDisplay() {
-//  lcd.setCursor(0, 0);
-//  lcd.print("Gaz:");
-//  lcd.setCursor(5, 0);
-//  lcd.print(analogSensor);
-//  lcd.setCursor(0, 1);
-//  lcd.print("Temp:");
-//  lcd.setCursor(6, 1);
-//  lcd.print(t_current, 1);
-//}
-
 void setup(void) {
   Serial.begin(9600);
 
-  pinMode(3, OUTPUT); // Relay GND
-  digitalWrite(3, 1);
-
-  pinMode(5, OUTPUT); // LCD GND
-  digitalWrite(5, 0);
-
-  pinMode(6, OUTPUT); // LCD VCC
-  digitalWrite(6, 1);
-
-  pinMode(13, OUTPUT); // DS18B20 GND
-  digitalWrite(13, 0);
+  pinMode(RELAYGND, OUTPUT);
+    digitalWrite(RELAYGND, 1);
+  pinMode(LCDGND, OUTPUT);
+    digitalWrite(LCDGND, 0);
+  pinMode(LCDVCC, OUTPUT);
+    digitalWrite(LCDVCC, 1);
+  pinMode(DSGND, OUTPUT);
+    digitalWrite(DSGND, 0);
 
   sensors.begin();
   lcd.begin(16, 2);
@@ -86,8 +75,8 @@ void setup(void) {
   readMQ();
   readDS();
 
-  pinMode(Relay, OUTPUT);
-  digitalWrite(Relay, 1);
+  pinMode(RELAY, OUTPUT);
+  digitalWrite(RELAY, 1);
 
   // инициализация Timer1
   cli();  // отключить глобальные прерывания
@@ -111,12 +100,12 @@ void loop(void) {
   readDS();
 
   updateDisplay();
-  Serial.println(t_current);
+  Serial.println(temp_current);
 
-  if (t_current > t_limit) {
+  if (temp_current > temp_limit) {
     if (timer_on == false) {
       Serial.println("Hight temperature. Starting fan.");
-      digitalWrite(Relay, 0);
+      digitalWrite(RELAY, 0);
       high_temp = true;
 
       do {
@@ -124,12 +113,12 @@ void loop(void) {
         readDS();
 
         updateDisplay();
-        Serial.println(t_current);
+        Serial.println(temp_current);
 
         delay(1000);
-      } while (t_current > (t_limit - hysterisis));
+      } while (temp_current > (temp_limit - temp_hyst));
 
-      digitalWrite(Relay, 1);
+      digitalWrite(RELAY, 1);
       high_temp = false;
     }
   }
@@ -147,11 +136,11 @@ ISR(TIMER1_COMPA_vect) {
     if (high_temp != true) {
       if (timer_on != true) {
         Serial.println("Timer has been enabled");
-        digitalWrite(Relay, 0);
+        digitalWrite(RELAY, 0);
         timer_on = true;
       } else if (timer_on == true) {
         Serial.println("Timer has been disabled");
-        digitalWrite(Relay, 1);
+        digitalWrite(RELAY, 1);
         timer_on = false;
       }
     } else {
