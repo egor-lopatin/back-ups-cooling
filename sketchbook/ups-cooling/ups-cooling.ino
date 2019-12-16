@@ -1,38 +1,43 @@
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
+#include <Servo.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-#define GAZ 14
-#define RELAY 2
-#define RELAYGND 3
-#define LCDGND 5
-#define LCDVCC 6
-#define DS 4
+#define LCDVCC 2
+#define MOTOR 3
+#define RELAYGND 4
+#define RELAY 5
+#define RELAYVCC 6
+#define DS 12
 #define DSGND 13
 
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12); // (RS, E, DB4, DB5, DB6, DB7)
+LiquidCrystal_I2C lcd(0x27, 20, 4);
 
+Servo motor;
 OneWire oneWire(DS);
 DallasTemperature sensors(&oneWire);
 
-int temp_limit = 32;
+// sensors vars
+int temp_limit = 35;
 int temp_hyst = 2;
 float temp_current = 0;
 float temp_error = -127.0;
-int gaz_current = 0;
-
-volatile byte seconds;
 bool high_temp = false;
-bool timer_on = false;
 
-char line0[17]; 
-char line1[17];
+// lcd lines length
+char line0[20]; 
+char line1[20];
+char line2[20];
+char line3[20];
 
-void readMQ() {
-  gaz_current = analogRead(GAZ);
-}
+// motor vars
+int js_position = 800;
+int max_position = 1600;
+int min_position = 1000;
+int cool_position = 1150;
+int test_position = 1050;
 
 void readDS() {
   sensors.requestTemperatures();
@@ -48,103 +53,94 @@ void updateDisplay() {
    char floatemp_str[7];
    dtostrf(temp_current,4,1,floatemp_str);
 
-   sprintf(line0, "Gaz: %-11d", gaz_current);
-   sprintf(line1, "Temp: %-10s", floatemp_str);
+   sprintf(line0, "Current Temp: %-5s", floatemp_str);
 
    lcd.setCursor(0,0);
    lcd.print(line0);
    lcd.setCursor(0,1);
    lcd.print(line1);
+   lcd.setCursor(0,2);
+   lcd.print(line2);
+   lcd.setCursor(0,3);
+   lcd.print(line3);
+}
+
+void initMotor() {
+  sprintf(line0, "ESC calibration: ");
+  lcd.print(line0);
+  lcd.blink();
+  
+  motor.attach(MOTOR);
+  motor.write(min_position);
+  delay(10000);
+ 
+  motor.write(test_position);
+  delay(5000);
+  
+  lcd.noBlink();
+  lcd.clear();
+  lcd.setCursor(4,1);
+  lcd.print("Calibrated!");
+  delay(3000);
+  lcd.clear();
+}
+
+void maxFan() {
+  motor.write(test_position);
+  delay(5000);
+  motor.write(cool_position);
+  delay(30000);
+  motor.write(min_position);
+  delay(20);
 }
 
 void setup(void) {
   Serial.begin(9600);
 
+  // VCC and GND pinouts
+  pinMode(RELAYVCC, OUTPUT);
+    digitalWrite(RELAYVCC, 1);
   pinMode(RELAYGND, OUTPUT);
-    digitalWrite(RELAYGND, 1);
-  pinMode(LCDGND, OUTPUT);
-    digitalWrite(LCDGND, 0);
+    digitalWrite(RELAYGND, 0);
   pinMode(LCDVCC, OUTPUT);
     digitalWrite(LCDVCC, 1);
   pinMode(DSGND, OUTPUT);
     digitalWrite(DSGND, 0);
 
-  sensors.begin();
-  lcd.begin(16, 2);
-
-  readMQ();
-  readDS();
-
+  // Relay initial
   pinMode(RELAY, OUTPUT);
   digitalWrite(RELAY, 1);
 
-  // инициализация Timer1
-  cli();  // отключить глобальные прерывания
-  TCCR1A = 0;   // установить регистры в 0
-  TCCR1B = 0;
+  // Sensors initial
+  sensors.begin();
 
-  OCR1A = 15624;  // установка регистра совпадения (1 sec)
+  // LCD initial
+  lcd.begin(20, 4);
+  lcd.backlight();
 
-  TCCR1B |= (1 << WGM12);  // включить CTC режим
-  TCCR1B |= (1 << CS10);  // Установить биты на коэффициент деления 1024
-  TCCR1B |= (1 << CS12);
-
-  TIMSK1 |= (1 << OCIE1A);  // включить прерывание по совпадению таймера
-  sei(); // включить глобальные прерывания
+  // ESC initial
+  initMotor();
 }
 
 // Main loop
 
 void loop(void) {
-  readMQ();
   readDS();
+    Serial.println(temp_current);
 
   updateDisplay();
-  Serial.println(temp_current);
 
   if (temp_current > temp_limit) {
-    if (timer_on == false) {
-      Serial.println("Hight temperature. Starting fan.");
-      digitalWrite(RELAY, 0);
-      high_temp = true;
-
-      do {
-        readMQ();
-        readDS();
-
-        updateDisplay();
+    digitalWrite(RELAY, 0);
+    do {
+      readDS();
         Serial.println(temp_current);
 
-        delay(1000);
-      } while (temp_current > (temp_limit - temp_hyst));
-
-      digitalWrite(RELAY, 1);
-      high_temp = false;
-    }
+      updateDisplay();
+      delay(1000);
+      
+    } while (temp_current > (temp_limit - temp_hyst));
+    digitalWrite(RELAY, 1);
   }
-
   delay(1000);
-}
-
-// Timer is here
-
-ISR(TIMER1_COMPA_vect) {
-  seconds++;
-  if (seconds == 180) {
-    seconds = 0;
-
-    if (high_temp != true) {
-      if (timer_on != true) {
-        Serial.println("Timer has been enabled");
-        digitalWrite(RELAY, 0);
-        timer_on = true;
-      } else if (timer_on == true) {
-        Serial.println("Timer has been disabled");
-        digitalWrite(RELAY, 1);
-        timer_on = false;
-      }
-    } else {
-      Serial.println("High temp fan is on. Skip timer.");
-    }
-  }
 }
