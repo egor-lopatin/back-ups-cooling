@@ -1,5 +1,6 @@
 #include <LiquidCrystal_I2C.h>
-#include <Servo.h>
+//#include <Servo.h>
+#include <ServoTimer2.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <avr/io.h>
@@ -8,16 +9,23 @@
 #define LCDVCC 2
 #define MOTOR 3
 #define RELAYGND 4
-#define RELAY 5
-#define RELAYVCC 6
-#define DS 12
-#define DSGND 13
+#define RELAY 6
+#define RELAYVCC 5
+#define DSIN 12
+#define DSIN_GND 13
+#define DSOUT 9
+#define DSOUT_GND 10
+#define DSOUT_VCC 11
+
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
-Servo motor;
-OneWire oneWire(DS);
-DallasTemperature sensors(&oneWire);
+ServoTimer2 motor;
+
+OneWire oneWireIn(DSIN);
+  DallasTemperature sensorin(&oneWireIn);
+OneWire oneWireOut(DSOUT);
+  DallasTemperature sensorout(&oneWireOut);
 
 // sensors vars
 int temp_limit = 35;
@@ -36,14 +44,15 @@ char line3[20];
 int js_position = 800;
 int max_position = 1600;
 int min_position = 1000;
-int cool_position = 1150;
-int test_position = 1050;
+int cool_position = 1400;
+int test_position = 1200;
 
 void readDS() {
-  sensors.requestTemperatures();
+  sensorin.requestTemperatures();
+  sensorout.requestTemperatures();
 
-  if (sensors.getTempCByIndex(0) != temp_error) {
-    temp_current = sensors.getTempCByIndex(0);
+  if (sensorout.getTempCByIndex(0) != temp_error) {
+    temp_current = sensorout.getTempCByIndex(0);
   } else {
     temp_current = 0;
   }
@@ -76,6 +85,9 @@ void initMotor() {
  
   motor.write(test_position);
   delay(5000);
+
+  motor.write(min_position);
+  delay(20);
   
   lcd.noBlink();
   lcd.clear();
@@ -104,19 +116,24 @@ void setup(void) {
     digitalWrite(RELAYGND, 0);
   pinMode(LCDVCC, OUTPUT);
     digitalWrite(LCDVCC, 1);
-  pinMode(DSGND, OUTPUT);
-    digitalWrite(DSGND, 0);
+  pinMode(DSIN_GND, OUTPUT);
+    digitalWrite(DSIN_GND, 0);
+  pinMode(DSOUT_VCC, OUTPUT);
+    digitalWrite(DSOUT_VCC, 1);
+  pinMode(DSOUT_GND, OUTPUT);
+    digitalWrite(DSOUT_GND, 0);  
 
   // Relay initial
   pinMode(RELAY, OUTPUT);
   digitalWrite(RELAY, 1);
 
   // Sensors initial
-  sensors.begin();
+  sensorin.begin();
+  sensorout.begin();
 
   // LCD initial
   lcd.begin(20, 4);
-  lcd.backlight();
+//  lcd.backlight();
 
   // ESC initial
   initMotor();
