@@ -132,7 +132,7 @@ void setup(void) {
   sensorout.begin();
 
   // LCD initial
-  lcd.begin(20, 4);
+  lcd.begin();
 //  lcd.backlight();
 
   // ESC initial
