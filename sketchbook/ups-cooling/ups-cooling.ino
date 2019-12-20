@@ -1,5 +1,4 @@
 #include <LiquidCrystal_I2C.h>
-//#include <Servo.h>
 #include <ServoTimer2.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -28,19 +27,23 @@ DallasTemperature sensorout(&oneWireOut);
 // sensors vars
 float t_error = -127.0;
 
-int t_in_limit = 35;
+// ups sensor
+int t_in_limit = 33;
 int t_in_hyst = 2;
 float t_in_current = 0;
+bool t_in_high = false;
 
+// out sensor
 int t_out_limit = 28;
 int t_out_hyst = 2;
 float t_out_current = 0;
+bool t_out_high = false;
 
 // lcd lines length
-char line0[20]; 
-char line1[20];
-char line2[20];
-char line3[20];
+char line0[21]; 
+char line1[21];
+char line2[21];
+char line3[21];
 
 // motor vars
 int js_position = 800;
@@ -48,6 +51,8 @@ int max_position = 1600;
 int min_position = 1000;
 int cool_position = 1400;
 int test_position = 1200;
+
+// Functions
 
 void readDS() {
   sensorin.requestTemperatures();
@@ -73,8 +78,8 @@ void updateDisplay() {
    char float_out_str[7];
    dtostrf(t_out_current,4,1,float_out_str);
 
-   sprintf(line0, "UPS Temp: %-5s", float_in_str);
-   sprintf(line1, "Room Temp: %-5s", float_out_str);
+   sprintf(line0, "UPS Temp: %-10s", float_in_str);
+   sprintf(line1, "Room Temp: %-9s", float_out_str);
 
    lcd.setCursor(0,0);
    lcd.print(line0);
@@ -130,6 +135,8 @@ void printSensors() {
 //  Serial.println(t_out_current);
 }
 
+// Setup
+
 void setup(void) {
   Serial.begin(9600);
 
@@ -137,6 +144,8 @@ void setup(void) {
     digitalWrite(RELAYVCC, 1);
   pinMode(RELAYGND, OUTPUT);
     digitalWrite(RELAYGND, 0);
+  pinMode(RELAY, OUTPUT);
+    digitalWrite(RELAY, 1);
   pinMode(LCDVCC, OUTPUT);
     digitalWrite(LCDVCC, 1);
   pinMode(DSOUT_GND, OUTPUT);
@@ -146,14 +155,10 @@ void setup(void) {
   pinMode(DSIN_GND, OUTPUT);
     digitalWrite(DSIN_GND, 0);  
 
-  pinMode(RELAY, OUTPUT);
-  digitalWrite(RELAY, 1);
-
   sensorin.begin();
   sensorout.begin();
 
   lcd.begin();
-//  lcd.backlight();
   lcd.noBacklight();
 
   initMotor();
@@ -165,19 +170,20 @@ void loop(void) {
   readDS();
   printSensors();
 
-  updateDisplay();
-
-  if (t_in_current > t_in_limit) {
-    digitalWrite(RELAY, 0);
-    do {
-      readDS();
-      printSensors();
-
-      updateDisplay();
-      delay(1000);
-      
-    } while (t_in_current > (t_in_limit - t_in_hyst));
-    digitalWrite(RELAY, 1);
+  if (t_in_high = false) {
+      if (t_in_current > t_in_limit ) {
+          Serial.println("High temp. Enable relay.");
+          digitalWrite(RELAY, 0);
+          t_in_high = true;
+      }
+  } else if (t_in_high = true) {
+      if (t_in_current < (t_in_limit - t_in_hyst)) {
+          Serial.println("Low temp. Disable relay.");
+          digitalWrite(RELAY, 1);
+      }
   }
+
+  updateDisplay();
   delay(1000);
+
 }
