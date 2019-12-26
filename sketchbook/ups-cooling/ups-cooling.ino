@@ -67,7 +67,7 @@ void readDS() {
         do {
             sensorin.requestTemperatures();
             t_in_current = sensorin.getTempCByIndex(0);
-        } while (sensorout.getTempCByIndex(0) == t_error);
+        } while (sensorin.getTempCByIndex(0) == t_error);
     }
 
     if (t_out_enabled == true) {
