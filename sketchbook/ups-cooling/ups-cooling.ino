@@ -30,10 +30,13 @@ int t_in_limit = 35;
 int t_in_hyst = 2;
 float t_in_current = 0;
 bool t_in_high = false;
+bool t_in_enabled = false;
+
 int t_out_limit = 28;
 int t_out_hyst = 2;
 float t_out_current = 0;
 bool t_out_high = false;
+bool t_out_enabled = false;
 
 char line0[21]; 
 char line1[21];
@@ -46,18 +49,33 @@ int min_position = 1000;
 int cool_position = 1400;
 int test_position = 1200;
 
+void initDS() {
+
+    sensorin.requestTemperatures();
+    if (sensorin.getTempCByIndex(0) != t_error) {
+        t_in_enabled = true;
+    }
+
+    sensorout.requestTemperatures();
+    if (sensorout.getTempCByIndex(0) != t_error) {
+        t_out_enabled = true;
+    }
+}
+
 void readDS() {
+    if (t_in_enabled == true) {
+        do {
+            sensorin.requestTemperatures();
+            t_in_current = sensorin.getTempCByIndex(0);
+        } while (sensorout.getTempCByIndex(0) == t_error);
+    }
 
-  do {
-      sensorin.requestTemperatures();
-      t_in_current = sensorin.getTempCByIndex(0);
-  } while (sensorout.getTempCByIndex(0) == t_error);
-
-  do {
-      sensorout.requestTemperatures();
-      t_out_current = sensorout.getTempCByIndex(0);
-  } while (sensorout.getTempCByIndex(0) == t_error);
-
+    if (t_out_enabled == true) {
+        do {
+            sensorout.requestTemperatures();
+            t_out_current = sensorout.getTempCByIndex(0);
+        } while (sensorout.getTempCByIndex(0) == t_error);
+    }
 }
 
 void updateDisplay() {
@@ -150,6 +168,7 @@ void setup(void) {
   lcd.noBacklight();
 
   initMotor();
+  initDS();
 }
 
 
