@@ -24,51 +24,40 @@ DallasTemperature sensorin(&oneWireIn);
 OneWire oneWireOut(DSOUT);
 DallasTemperature sensorout(&oneWireOut);
 
-// sensors vars
 float t_error = -127.0;
 
-// ups sensor
-int t_in_limit = 33;
+int t_in_limit = 35;
 int t_in_hyst = 2;
 float t_in_current = 0;
 bool t_in_high = false;
-
-// out sensor
 int t_out_limit = 28;
 int t_out_hyst = 2;
 float t_out_current = 0;
 bool t_out_high = false;
 
-// lcd lines length
 char line0[21]; 
 char line1[21];
 char line2[21];
 char line3[21];
 
-// motor vars
 int js_position = 800;
 int max_position = 1600;
 int min_position = 1000;
 int cool_position = 1400;
 int test_position = 1200;
 
-// Functions
-
 void readDS() {
-  sensorin.requestTemperatures();
-  sensorout.requestTemperatures();
 
-  if (sensorin.getTempCByIndex(0) != t_error) {
-     t_in_current = sensorin.getTempCByIndex(0);
-  } else {
-     t_in_current = 0;
-  }
+  do {
+      sensorin.requestTemperatures();
+      t_in_current = sensorin.getTempCByIndex(0);
+  } while (sensorout.getTempCByIndex(0) == t_error);
 
-  if (sensorout.getTempCByIndex(0) != t_error) {
-    t_out_current = sensorout.getTempCByIndex(0);
-  } else {
-    t_out_current = 0;
-  }
+  do {
+      sensorout.requestTemperatures();
+      t_out_current = sensorout.getTempCByIndex(0);
+  } while (sensorout.getTempCByIndex(0) == t_error);
+
 }
 
 void updateDisplay() {
@@ -124,18 +113,17 @@ void maxFan() {
 }
 
 void printSensors() {
-  char t_in[50];
-  char t_out[50];
-  sprintf(t_in, "%s ", t_in_current);
-  sprintf(t_out, "%s", t_out_current);
+  char t_in[7];
+  char t_out[7];
+  char serial_out[20];
 
-//  Serial.print(t_in);
-//  Serial.println(t_out);
-  Serial.println(t_in_current);
-//  Serial.println(t_out_current);
+  dtostrf(t_in_current,4,1,t_in);
+  dtostrf(t_out_current,4,1,t_out);
+  sprintf(serial_out, "%s %s", t_in, t_out);
+
+  Serial.println(serial_out);
 }
 
-// Setup
 
 void setup(void) {
   Serial.begin(9600);
@@ -164,19 +152,18 @@ void setup(void) {
   initMotor();
 }
 
-// Main loop
 
 void loop(void) {
   readDS();
   printSensors();
 
-  if (t_in_high = false) {
+  if (t_in_high == false) {
       if (t_in_current > t_in_limit ) {
           Serial.println("High temp. Enable relay.");
           digitalWrite(RELAY, 0);
           t_in_high = true;
       }
-  } else if (t_in_high = true) {
+  } else if (t_in_high == true) {
       if (t_in_current < (t_in_limit - t_in_hyst)) {
           Serial.println("Low temp. Disable relay.");
           digitalWrite(RELAY, 1);
