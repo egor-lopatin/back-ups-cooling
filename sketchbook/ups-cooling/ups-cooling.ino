@@ -8,14 +8,14 @@
 
 #define LCDVCC 2
 #define MOTOR 3
-#define RELAYGND 4
-#define RELAY 6
-#define RELAYVCC 5
+#define RELAY 4
+#define RELAYGND 5
+#define RELAYVCC 6
 #define DSOUT 12
 #define DSOUT_GND 13
-#define DSIN 9
+#define DSIN 11
 #define DSIN_GND 10
-#define DSIN_VCC 11
+#define DSIN_VCC 9
 
 LiquidCrystal_I2C lcd(0x27, 20, 4);
 
@@ -29,15 +29,15 @@ DallasTemperature sensorout(&oneWireOut);
 float t_error = -127.0;
 
 int t_in_limit = 35;
-int t_in_hyst = 2;
+int t_in_hyst = 3;
 float t_in_current = 0;
-bool t_in_high = false;
+//bool t_in_high = false;
 bool t_in_enabled = false;
 
 int t_out_limit = 28;
 int t_out_hyst = 2;
 float t_out_current = 0;
-bool t_out_high = false;
+//bool t_out_high = false;
 bool t_out_enabled = false;
 
 char line0[21];
@@ -168,7 +168,7 @@ void setup(void) {
   lcd.begin();
   lcd.noBacklight();
 
-  initMotor();
+//  initMotor();
   initDS();
 }
 
@@ -177,15 +177,14 @@ void loop(void) {
   readDS();
   printSensors();
 
-  if (t_in_high == false) {
+  if (digitalRead(RELAY) == 1) {
     if (t_in_current > t_in_limit ) {
-      Serial.println("High temp. Enable relay.");
+//      Serial.println("High temp. Enable relay.");
       digitalWrite(RELAY, 0);
-      t_in_high = true;
     }
-  } else if (t_in_high == true) {
+  } else if (digitalRead(RELAY) == 0) {
     if (t_in_current < (t_in_limit - t_in_hyst)) {
-      Serial.println("Low temp. Disable relay.");
+//      Serial.println("Low temp. Disable relay.");
       digitalWrite(RELAY, 1);
     }
   }
