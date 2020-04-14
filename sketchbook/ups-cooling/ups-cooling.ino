@@ -31,14 +31,13 @@ float t_error = -127.0;
 int t_in_limit = 35;
 int t_in_hyst = 3;
 float t_in_current = 0;
-//bool t_in_high = false;
 bool t_in_enabled = false;
 
-int t_out_limit = 28;
+int t_out_limit = 40;
 int t_out_hyst = 2;
 float t_out_current = 0;
-//bool t_out_high = false;
 bool t_out_enabled = false;
+bool t_out_high = false;
 
 char line0[21];
 char line1[21];
@@ -46,10 +45,11 @@ char line2[21];
 char line3[21];
 
 int js_position = 800;
-int max_position = 1600;
 int min_position = 1000;
-int cool_position = 1400;
-int test_position = 1200;
+int max_position = 1600;
+
+int init_position = 1200;
+int cool_position = 1250;
 
 void initDS() {
   sensorin.requestTemperatures();
@@ -99,6 +99,18 @@ void updateDisplay() {
   lcd.print(line3);
 }
 
+void printSensors() {
+  char t_in[7];
+  char t_out[7];
+  char serial_out[20];
+ 
+  dtostrf(t_in_current, 4, 1, t_in);
+  dtostrf(t_out_current, 4, 1, t_out);
+  sprintf(serial_out, "%s %s", t_in, t_out);
+  
+  Serial.println(serial_out);
+}
+
 void initMotor() {
   sprintf(line0, "ESC calibration: ");
   lcd.print(line0);
@@ -108,11 +120,12 @@ void initMotor() {
   motor.write(min_position);
   delay(10000);
 
-  motor.write(test_position);
+  motor.write(init_position);
   delay(5000);
 
   motor.write(min_position);
   delay(20);
+  motor.detach();
 
   lcd.noBlink();
   lcd.clear();
@@ -122,8 +135,8 @@ void initMotor() {
   lcd.clear();
 }
 
-void maxFan() {
-  motor.write(test_position);
+void motorTest() {
+  motor.write(init_position);
   delay(5000);
   motor.write(cool_position);
   delay(30000);
@@ -131,19 +144,17 @@ void maxFan() {
   delay(20);
 }
 
-void printSensors() {
-  char t_in[7];
-  char t_out[7];
-  char serial_out[20];
-
-  dtostrf(t_in_current, 4, 1, t_in);
-  dtostrf(t_out_current, 4, 1, t_out);
-  sprintf(serial_out, "%s %s", t_in, t_out);
-
-  Serial.println(serial_out);
+void motorCool(bool state) {
+  if (state == true) {
+      motor.attach(MOTOR);
+      motor.write(cool_position); 
+  }
+  else if (state == false) {
+     motor.detach();
+     motor.write(min_position);
+  }
 }
-
-
+  
 void setup(void) {
   Serial.begin(9600);
 
@@ -168,10 +179,9 @@ void setup(void) {
   lcd.begin();
   lcd.noBacklight();
 
-//  initMotor();
+  initMotor();
   initDS();
 }
-
 
 void loop(void) {
   readDS();
@@ -179,13 +189,22 @@ void loop(void) {
 
   if (digitalRead(RELAY) == 1) {
     if (t_in_current > t_in_limit ) {
-//      Serial.println("High temp. Enable relay.");
       digitalWrite(RELAY, 0);
     }
   } else if (digitalRead(RELAY) == 0) {
     if (t_in_current < (t_in_limit - t_in_hyst)) {
-//      Serial.println("Low temp. Disable relay.");
       digitalWrite(RELAY, 1);
+    }
+  }
+
+  if (t_out_high == false) {
+    if (t_out_current > t_out_limit ) {
+       motorCool(true);
+       delay(10000);
+    }
+  } else if (t_out_high == true) {
+    if (t_out_current < (t_out_limit - t_out_hyst)) {
+       motor.write(min_position);
     }
   }
 
