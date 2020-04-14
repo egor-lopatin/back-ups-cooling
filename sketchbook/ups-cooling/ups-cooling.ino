@@ -168,7 +168,7 @@ void setup(void) {
   lcd.begin();
   lcd.noBacklight();
 
-//  initMotor();
+  initMotor();
   initDS();
 }
 
