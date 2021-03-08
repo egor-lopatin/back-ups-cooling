@@ -1,25 +1,21 @@
-#include <LiquidCrystal_I2C.h>
-#include <ServoTimer2.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include <avr/io.h>
-#include <avr/interrupt.h>
 #include <Wire.h>
 
-#define LCDVCC 2
-#define MOTOR 3
+// Relay
 #define RELAY 4
 #define RELAYGND 5
 #define RELAYVCC 6
-#define DSOUT 12
-#define DSOUT_GND 13
-#define DSIN 11
-#define DSIN_GND 10
+
+// Inside temp sensor
 #define DSIN_VCC 9
+#define DSIN_GND 10
+#define DSIN 11
 
-LiquidCrystal_I2C lcd(0x27, 20, 4);
-
-ServoTimer2 motor;
+// Outside temp sensor
+#define DSOUT_VCC 8
+#define DSOUT_GND 13
+#define DSOUT 12
 
 OneWire oneWireIn(DSIN);
 DallasTemperature sensorin(&oneWireIn);
@@ -39,18 +35,6 @@ int t_out_hyst = 2;
 float t_out_current = 0;
 bool t_out_enabled = false;
 bool t_out_high = false;
-
-char line0[21];
-char line1[21];
-char line2[21];
-char line3[21];
-
-int js_position = 800;
-int min_position = 1000;
-int max_position = 1600;
-
-int init_position = 1200;
-int cool_position = 1250;
 
 void initDS() {
   sensorin.requestTemperatures();
@@ -81,108 +65,43 @@ void readDS() {
   }
 }
 
-void updateDisplay() {
-  char float_in_str[7];
-  dtostrf(t_in_current, 4, 1, float_in_str);
-
-  char float_out_str[7];
-  dtostrf(t_out_current, 4, 1, float_out_str);
-
-  sprintf(line0, "UPS Temp: %-10s", float_in_str);
-  sprintf(line1, "Room Temp: %-9s", float_out_str);
-
-  lcd.setCursor(0, 0);
-  lcd.print(line0);
-  lcd.setCursor(0, 1);
-  lcd.print(line1);
-  lcd.setCursor(0, 2);
-  lcd.print(line2);
-  lcd.setCursor(0, 3);
-  lcd.print(line3);
-}
-
 void printSensors() {
   char t_in[7];
   char t_out[7];
   char serial_out[20];
- 
+
   dtostrf(t_in_current, 4, 1, t_in);
   dtostrf(t_out_current, 4, 1, t_out);
   sprintf(serial_out, "%s %s", t_in, t_out);
-  
+
   Serial.println(serial_out);
 }
 
-void initMotor() {
-  sprintf(line0, "ESC calibration: ");
-  lcd.print(line0);
-  lcd.blink();
-
-  motor.attach(MOTOR);
-  motor.write(min_position);
-  delay(10000);
-
-  motor.write(init_position);
-  delay(5000);
-
-  motor.write(min_position);
-  delay(20);
-  motor.detach();
-
-  lcd.noBlink();
-  lcd.clear();
-  lcd.setCursor(4, 1);
-  lcd.print("Calibrated!");
-  delay(3000);
-  lcd.clear();
-}
-
-void motorTest() {
-  motor.write(init_position);
-  delay(5000);
-  motor.write(cool_position);
-  delay(30000);
-  motor.write(min_position);
-  delay(20);
-}
-
-void motorCool(bool state) {
-  if (state == true) {
-      motor.attach(MOTOR);
-      motor.write(cool_position); 
-  }
-  else if (state == false) {
-     motor.detach();
-     motor.write(min_position);
-  }
-}
-  
 void setup(void) {
   Serial.begin(9600);
 
+// Relay init
   pinMode(RELAYVCC, OUTPUT);
   digitalWrite(RELAYVCC, 1);
   pinMode(RELAYGND, OUTPUT);
   digitalWrite(RELAYGND, 0);
   pinMode(RELAY, OUTPUT);
   digitalWrite(RELAY, 1);
-  pinMode(LCDVCC, OUTPUT);
-  digitalWrite(LCDVCC, 1);
-  pinMode(DSOUT_GND, OUTPUT);
-  digitalWrite(DSOUT_GND, 0);
+
+// Inside temp sensor init
   pinMode(DSIN_VCC, OUTPUT);
   digitalWrite(DSIN_VCC, 1);
   pinMode(DSIN_GND, OUTPUT);
   digitalWrite(DSIN_GND, 0);
 
+// Outside temp sensor init
+  pinMode(DSOUT_VCC, OUTPUT);
+  digitalWrite(DSOUT_VCC, 1);
+  pinMode(DSOUT_GND, OUTPUT);
+  digitalWrite(DSOUT_GND, 0);
+
   sensorin.begin();
   sensorout.begin();
-
-  lcd.begin();
-  lcd.noBacklight();
-
-// initMotor();
-  initDS();
 }
 
 void loop(void) {
@@ -199,17 +118,5 @@ void loop(void) {
     }
   }
 
-  if (t_out_high == false) {
-    if (t_out_current > t_out_limit ) {
-       motorCool(true);
-       delay(10000);
-    }
-  } else if (t_out_high == true) {
-    if (t_out_current < (t_out_limit - t_out_hyst)) {
-       motor.write(min_position);
-    }
-  }
-
-  updateDisplay();
   delay(1000);
 }
