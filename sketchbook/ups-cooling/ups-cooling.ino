@@ -2,20 +2,22 @@
 #include <DallasTemperature.h>
 #include <Wire.h>
 
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
 // Relay
 #define RELAY 4
 #define RELAYGND 5
-#define RELAYVCC 6
 
 // Inside temp sensor
+#define DSIN 8
 #define DSIN_VCC 9
 #define DSIN_GND 10
-#define DSIN 11
 
 // Outside temp sensor
-#define DSOUT_VCC 8
-#define DSOUT_GND 13
 #define DSOUT 12
+#define DSOUT_VCC 7
+#define DSOUT_GND 13
 
 OneWire oneWireIn(DSIN);
 DallasTemperature sensorin(&oneWireIn);
@@ -81,8 +83,6 @@ void setup(void) {
   Serial.begin(9600);
 
 // Relay init
-  pinMode(RELAYVCC, OUTPUT);
-  digitalWrite(RELAYVCC, 1);
   pinMode(RELAYGND, OUTPUT);
   digitalWrite(RELAYGND, 0);
   pinMode(RELAY, OUTPUT);
@@ -102,6 +102,8 @@ void setup(void) {
 
   sensorin.begin();
   sensorout.begin();
+
+  initDS();
 }
 
 void loop(void) {
