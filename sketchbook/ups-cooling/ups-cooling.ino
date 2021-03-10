@@ -2,6 +2,9 @@
 #include <DallasTemperature.h>
 #include <Wire.h>
 
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
 // Relay
 #define RELAY 4
 #define RELAYGND 5
@@ -99,6 +102,8 @@ void setup(void) {
 
   sensorin.begin();
   sensorout.begin();
+
+  initDS();
 }
 
 void loop(void) {
@@ -116,5 +121,4 @@ void loop(void) {
   }
 
   delay(1000);
-  
 }
